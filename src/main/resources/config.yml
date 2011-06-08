@@ -1,9 +1,32 @@
 dispenser:
+
+  # To disable advanced features for any of the types
+  # simply set the type to 0
+
+  # The default types IDs all make sense, but if you
+  # wanted to use different items, you may override
+  # it here.
+
+  # default: 326, Water Bucket
   water-type: 326
+
+  # default: 327, Lava Bucket
   lava-type: 327
+
+  # default: 259, Flint and Steel
   fire-type: 259
+
+  # default: 317, Gold Boots
   lightning-type: 317
+
+  # default: 341, Slime Ball
   slime-type: 341
+
+  # default: 333, Boat
   boat-type: 333
+
+  # default: 328, Minecart
   minecart-type: 328
 
+
+# The end.

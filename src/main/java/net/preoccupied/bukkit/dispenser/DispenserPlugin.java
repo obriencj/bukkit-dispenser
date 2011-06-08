@@ -26,9 +26,16 @@ import org.bukkit.util.config.Configuration;
 import net.preoccupied.bukkit.PluginConfiguration;
 
 
+/**
+   Improved Dispensers plugin for Bukkit.
+
+   @author Christopher O'Brien <cobrien@gmail.com>
+ */
 public class DispenserPlugin extends JavaPlugin {
 
+
     private Set<Block> flowingDispensers = null;
+
 
     private Material waterType = Material.WATER_BUCKET;
     private Material lavaType = Material.LAVA_BUCKET;
@@ -40,8 +47,13 @@ public class DispenserPlugin extends JavaPlugin {
     private Material cartType = Material.MINECART;
 
 
+
     public void onLoad() {
 	flowingDispensers = new HashSet<Block>();
+
+	// if you're not using the bukkit-utils module, you can
+	// comment the rest of this method out, but you won't be able
+	// to override the default item types via config.yml
 
 	try {
 	    Configuration conf = PluginConfiguration.load(this, this.getFile(), "config.yml");
@@ -65,10 +77,11 @@ public class DispenserPlugin extends JavaPlugin {
     }
 
 
+
     public void onEnable() {
 	PluginManager pm = getServer().getPluginManager();
-
 	EventExecutor ee;
+
 	ee = new EventExecutor() {
 		public void execute(Listener ignored, Event e) {
 		    onBlockRedstoneChange((BlockRedstoneEvent) e);
@@ -85,14 +98,26 @@ public class DispenserPlugin extends JavaPlugin {
     }
 
 
+
     public void onDisable() {
-	;
+	for(Block b : flowingDispensers) {
+	    Block t = getFacingBlock(b);
+	    t.setTypeId(0, true);
+	}
+	flowingDispensers.clear();
     }
 
 
+
     private void onBlockRedstoneChange(BlockRedstoneEvent e) {
+	// if the change is from powered to unpowered
 	if(e.getOldCurrent() > 0 && e.getNewCurrent() == 0) {
+
+	    // check our powered dispensers, if any
 	    for(Block b : flowingDispensers) {
+
+		// if one of our powered dispensers is no longere
+		// powered, shut down the flow
 		if(! b.isBlockIndirectlyPowered()) {
 		    Block t = getFacingBlock(b);
 		    t.setTypeId(0, true);
@@ -103,56 +128,77 @@ public class DispenserPlugin extends JavaPlugin {
     }
 
 
+
+    /**
+       check that the spew type is enabled (by not being AIR) and
+       matches the material being spewed
+     */
     private static boolean spewCheck(Material spewed, Material check) {
 	return (check != Material.AIR && spewed == check);
     }
 
 
+
     private void onBlockDispense(BlockDispenseEvent e) {
+	if(e.isCancelled())
+	    return;
+
 	Material spewType = e.getItem().getType();
+	boolean cancel = false;
 
 	if(spewCheck(spewType, slimeType)) {
 	    if(spewSlime(e.getBlock())) {
+		// we change it to a snowball because we want to consume the item,
+		// but by default a slimeball would just plop out.
+		// TODO: use inventory editing and cancel the event.
 		e.setItem(new ItemStack(Material.SNOW_BALL, 1));
 	    }
-	    return;
 	    
 	} else if(spewCheck(spewType, lightningType)) {
-	    if(! spewLightning(e.getBlock()))
-		return;
+	    if(spewLightning(e.getBlock())) {
+		cancel = true;
+	    }
 
 	} else if(spewCheck(spewType, fireType)) {
-	    if(! spewFire(e.getBlock()))
-		return;
+	    if(spewFire(e.getBlock())) {
+		cancel = true;
+	    }
 
 	} else if(spewCheck(spewType, boatType)) {
 	    if(spewBoat(e.getBlock())) {
+		// TODO: use inventory editing and cancel the event.
 		e.setItem(new ItemStack(Material.SNOW_BALL, 1));
 	    }
-	    return;
 
 	} else if(spewCheck(spewType, cartType)) {
 	    if(spewMinecart(e.getBlock())) {
+		// TODO: use inventory editing and cancel the event.
 		e.setItem(new ItemStack(Material.SNOW_BALL, 1));
 	    }
-	    return;
 
 	} else if(spewCheck(spewType, waterType)) {
-	    if(! spewWater(e.getBlock()))
-		return;
+	    if(spewWater(e.getBlock())) {
+		cancel = true;
+	    }
 	    
 	} else if(spewCheck(spewType, lavaType)) {
-	    if(! spewLava(e.getBlock()))
-		return;
-	    
-	} else {
-	    return;
+	    if(spewLava(e.getBlock())) {
+		cancel = true;
+	    }
 	}
-	
-	e.setCancelled(true);
+
+	// canceling this event means that the item is NOT consumed,
+	// and nothing is plopped out automatically. So for non-consumable
+	// triggers, such cancel should be true.
+	e.setCancelled(cancel);
     }
 
 
+
+    /**
+       Determine the Block that is count away from the face of the
+       Dispenser b.
+     */
     private static Block getFacingBlock(Block b, int count) {
 	switch(b.getData()) {
 	case 2:
@@ -169,31 +215,45 @@ public class DispenserPlugin extends JavaPlugin {
     }
     
 
+
     private static Block getFacingBlock(Block b) {
 	return getFacingBlock(b, 1);
     }
     
+
     
+    /**
+       Spawns a slime creature
+    */
     public boolean spewSlime(Block b) {
 	b = getFacingBlock(b, 2);
-
+	
 	if(! isMaterialOpen(b.getType()))
 	    return false;
-
+	
 	b.getWorld().spawnCreature(b.getLocation(), CreatureType.SLIME);
 	return true;
     }
+    
 
-
+    
+    /**
+       Causes a lightning strike
+    */
     public boolean spewLightning(Block b) {
 	b.getWorld().strikeLightning(b.getLocation());
 	return true;
     }
 
 
+
+    /**
+       Lights a fire. Uses the BlockIgniteEvent check to make sure
+       fire is permitted.
+    */
     public boolean spewFire(Block b) {
 	b = getFacingBlock(b);
-
+	
 	if(! isMaterialOpen(b.getType()))
 	    return false;
 
@@ -209,6 +269,10 @@ public class DispenserPlugin extends JavaPlugin {
     }
 
 
+
+    /**
+       Spawns a boat entity
+     */
     public boolean spewBoat(Block b) {
 	b = getFacingBlock(b);
 
@@ -224,6 +288,10 @@ public class DispenserPlugin extends JavaPlugin {
     }
 
 
+
+    /**
+       Spawns a minecart entity
+     */
     public boolean spewMinecart(Block b) {
 	b = getFacingBlock(b);
 	
@@ -241,6 +309,10 @@ public class DispenserPlugin extends JavaPlugin {
     }
 
 
+
+    /**
+       Starts a water flow
+     */
     public boolean spewWater(Block b) {
 	Block t = getFacingBlock(b);
 
@@ -253,6 +325,10 @@ public class DispenserPlugin extends JavaPlugin {
     }
 
 
+
+    /**
+       Starts a lava flow
+    */
     public boolean spewLava(Block b) {
 	Block t = getFacingBlock(b);
 
@@ -263,8 +339,13 @@ public class DispenserPlugin extends JavaPlugin {
 	flowingDispensers.add(b);
 	return true;
     }
+
     
     
+    /**
+       Check if the material is considered "open" such that you could
+       reasonably expect something to spawn there. Non obtrusive blocks.
+     */
     private static boolean isMaterialOpen(Material m) {
 	switch(m) {
 	case AIR:
@@ -291,7 +372,6 @@ public class DispenserPlugin extends JavaPlugin {
 	    return false;
 	}
     }
-
 
 }
 
