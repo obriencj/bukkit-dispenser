@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -110,17 +111,29 @@ public class DispenserPlugin extends JavaPlugin {
 
 
     private void onBlockRedstoneChange(BlockRedstoneEvent e) {
+
+	//debugging an oddity that turned out to be redstone repeaters
+	//not emitting a redstone change event, but still providing
+	//current. If you power a dispenser directly off of a
+	//repeater, it won't shut off for you currently.
+
+	//System.out.println("REDSTONE " + e.getOldCurrent() + " -> " + e.getNewCurrent());
+	
 	// if the change is from powered to unpowered
 	if(e.getOldCurrent() > 0 && e.getNewCurrent() == 0) {
 
 	    // check our powered dispensers, if any
 	    for(Block b : flowingDispensers) {
 
-		// if one of our powered dispensers is no longere
+		//System.out.println("checking " + b);
+		//System.out.println("b.isBlockPowered() == " + b.isBlockPowered());
+		//System.out.println("b.isBlockIndirectlyPowered() == " + b.isBlockIndirectlyPowered());
+
+		// if one of our powered dispensers is no longer
 		// powered, shut down the flow
-		if(! b.isBlockIndirectlyPowered()) {
+		if(! (b.isBlockPowered() || b.isBlockIndirectlyPowered())) {
 		    Block t = getFacingBlock(b);
-		    t.setTypeId(0, true);
+		    safeSetBlockType(t, Material.AIR);
 		    flowingDispensers.remove(b);
 		}
 	    }
@@ -195,6 +208,18 @@ public class DispenserPlugin extends JavaPlugin {
 
 
 
+    private void safeSetBlockType(final Block block, final Material material) {
+	Runnable task = new Runnable() {
+		public void run() {
+		    block.setType(material);
+		}
+	    };
+
+	Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(this, task);
+    }
+
+
+
     /**
        Determine the Block that is count away from the face of the
        Dispenser b.
@@ -262,7 +287,7 @@ public class DispenserPlugin extends JavaPlugin {
 	getServer().getPluginManager().callEvent(event);
 	
 	if(! event.isCancelled()) {
-	    b.setType(Material.FIRE);
+	    safeSetBlockType(b, Material.FIRE);
 	}
 
 	return true;
@@ -319,7 +344,7 @@ public class DispenserPlugin extends JavaPlugin {
 	if(! isMaterialOpen(t.getType()))
 	    return false;
 	
-	t.setTypeIdAndData(Material.WATER.getId(), (byte) 0, false);
+	safeSetBlockType(t, Material.WATER);
 	flowingDispensers.add(b);
 	return true;
     }
@@ -335,7 +360,7 @@ public class DispenserPlugin extends JavaPlugin {
 	if(! isMaterialOpen(t.getType()))
 	    return false;
 	
-	t.setTypeIdAndData(Material.LAVA.getId(), (byte) 0, false);
+	safeSetBlockType(t, Material.LAVA);
 	flowingDispensers.add(b);
 	return true;
     }
