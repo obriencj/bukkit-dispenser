@@ -1,0 +1,9 @@
+dispenser:
+  water-type: 326
+  lava-type: 327
+  fire-type: 259
+  lightning-type: 317
+  slime-type: 341
+  boat-type: 333
+  minecart-type: 328
+

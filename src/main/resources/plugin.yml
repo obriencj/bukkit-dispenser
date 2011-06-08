@@ -1,0 +1,8 @@
+name: Dispenser
+main: net.preoccupied.bukkit.dispenser.DispenserPlugin
+version: 0.1
+author: obriencj@gmail.com
+database: false
+description: Adds dispenser behavior for water and lava
+
+commands:
