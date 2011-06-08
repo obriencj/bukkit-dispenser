@@ -177,15 +177,11 @@ public class DispenserPlugin extends JavaPlugin {
     public boolean spewSlime(Block b) {
 	b = getFacingBlock(b, 2);
 
-	switch(b.getType()) {
-	case AIR:
-	case WATER:
-	    b.getWorld().spawnCreature(b.getLocation(), CreatureType.SLIME);
-	    return true;
-
-	default:
+	if(! isMaterialOpen(b.getType()))
 	    return false;
-	}
+
+	b.getWorld().spawnCreature(b.getLocation(), CreatureType.SLIME);
+	return true;
     }
 
 
@@ -198,22 +194,18 @@ public class DispenserPlugin extends JavaPlugin {
     public boolean spewFire(Block b) {
 	b = getFacingBlock(b);
 
-	switch(b.getType()) {
-	case AIR:
-	    IgniteCause cause = BlockIgniteEvent.IgniteCause.FLINT_AND_STEEL;
-            BlockIgniteEvent event = new BlockIgniteEvent(b, cause, null);
-            getServer().getPluginManager().callEvent(event);
-
-	    if(! event.isCancelled()) {
-		b.setType(Material.FIRE);
-	    }
-
-	case FIRE:
-	    return true;
-
-	default:
+	if(! isMaterialOpen(b.getType()))
 	    return false;
+
+	IgniteCause cause = BlockIgniteEvent.IgniteCause.FLINT_AND_STEEL;
+	BlockIgniteEvent event = new BlockIgniteEvent(b, cause, null);
+	getServer().getPluginManager().callEvent(event);
+	
+	if(! event.isCancelled()) {
+	    b.setType(Material.FIRE);
 	}
+
+	return true;
     }
 
 
@@ -236,6 +228,7 @@ public class DispenserPlugin extends JavaPlugin {
 	b = getFacingBlock(b);
 	
 	switch(b.getType()) {
+	case AIR:
 	case RAILS:
 	case POWERED_RAIL:
 	case DETECTOR_RAIL:
@@ -251,13 +244,8 @@ public class DispenserPlugin extends JavaPlugin {
     public boolean spewWater(Block b) {
 	Block t = getFacingBlock(b);
 
-	if(t.getType() == Material.WATER) {
-	    return true;
-
-	} else if(t.getType() != Material.AIR) {
+	if(! isMaterialOpen(t.getType()))
 	    return false;
-	}
-	
 	
 	t.setTypeIdAndData(Material.WATER.getId(), (byte) 0, false);
 	flowingDispensers.add(b);
@@ -268,18 +256,43 @@ public class DispenserPlugin extends JavaPlugin {
     public boolean spewLava(Block b) {
 	Block t = getFacingBlock(b);
 
-	if(t.getType() == Material.LAVA) {
-	    return true;
-
-	} else if(t.getType() != Material.AIR) {
+	if(! isMaterialOpen(t.getType()))
 	    return false;
-	}
 	
 	t.setTypeIdAndData(Material.LAVA.getId(), (byte) 0, false);
 	flowingDispensers.add(b);
 	return true;
     }
-	
+    
+    
+    private static boolean isMaterialOpen(Material m) {
+	switch(m) {
+	case AIR:
+	case BROWN_MUSHROOM:
+	case CAKE:
+	case DETECTOR_RAIL:
+	case FIRE:
+	case GRASS:
+	case LAVA:
+	case POWERED_RAIL:
+	case RAILS:
+	case RED_MUSHROOM:
+	case RED_ROSE:
+	case REDSTONE_WIRE:
+	case REDSTONE_TORCH_OFF:
+	case REDSTONE_TORCH_ON:
+	case SNOW:
+	case TORCH:
+	case WATER:
+	case YELLOW_FLOWER:
+	    return true;
+	    
+	default:
+	    return false;
+	}
+    }
+
+
 }
 
 
