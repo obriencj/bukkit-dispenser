@@ -3,6 +3,7 @@ package net.preoccupied.bukkit.dispenser;
 
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 import org.bukkit.Bukkit;
@@ -111,30 +112,18 @@ public class DispenserPlugin extends JavaPlugin {
 
 
     private void onBlockRedstoneChange(BlockRedstoneEvent e) {
-
-	//debugging an oddity that turned out to be redstone repeaters
-	//not emitting a redstone change event, but still providing
-	//current. If you power a dispenser directly off of a
-	//repeater, it won't shut off for you currently.
-
-	//System.out.println("REDSTONE " + e.getOldCurrent() + " -> " + e.getNewCurrent());
-	
 	// if the change is from powered to unpowered
 	if(e.getOldCurrent() > 0 && e.getNewCurrent() == 0) {
-
-	    // check our powered dispensers, if any
-	    for(Block b : flowingDispensers) {
-
-		//System.out.println("checking " + b);
-		//System.out.println("b.isBlockPowered() == " + b.isBlockPowered());
-		//System.out.println("b.isBlockIndirectlyPowered() == " + b.isBlockIndirectlyPowered());
-
+	    
+	    for(Iterator<Block> i = flowingDispensers.iterator(); i.hasNext(); ){ 
+		Block b = i.next();
+		
 		// if one of our powered dispensers is no longer
 		// powered, shut down the flow
 		if(! (b.isBlockPowered() || b.isBlockIndirectlyPowered())) {
 		    Block t = getFacingBlock(b);
 		    safeSetBlockType(t, Material.AIR);
-		    flowingDispensers.remove(b);
+		    i.remove();
 		}
 	    }
 	}
@@ -388,6 +377,8 @@ public class DispenserPlugin extends JavaPlugin {
 	case REDSTONE_TORCH_OFF:
 	case REDSTONE_TORCH_ON:
 	case SNOW:
+	case STATIONARY_LAVA:
+	case STATIONARY_WATER:
 	case TORCH:
 	case WATER:
 	case YELLOW_FLOWER:
