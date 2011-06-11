@@ -10,6 +10,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.Dispenser;
 import org.bukkit.entity.CreatureType;
 import org.bukkit.event.Event;
 import org.bukkit.event.Event.Priority;
@@ -20,6 +21,8 @@ import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockIgniteEvent.IgniteCause;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.material.Directional;
 import org.bukkit.plugin.EventExecutor;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -48,6 +51,8 @@ public class DispenserPlugin extends JavaPlugin {
     private Material boatType = Material.BOAT;
     private Material cartType = Material.MINECART;
 
+
+    private boolean powerTest = false;
 
 
     public void onLoad() {
@@ -103,7 +108,7 @@ public class DispenserPlugin extends JavaPlugin {
 
     public void onDisable() {
 	for(Block b : flowingDispensers) {
-	    Block t = getFacingBlock(b);
+	    Block t = getFacingBlock((Dispenser) b.getState(), 1);
 	    t.setTypeId(0, true);
 	}
 	flowingDispensers.clear();
@@ -111,21 +116,41 @@ public class DispenserPlugin extends JavaPlugin {
 
 
 
+    private synchronized void finishPowerTest() {
+	powerTest = false;
+    }
+
+
+
+    private synchronized void schedulePowerTest() {
+	powerTest = true;
+
+	Runnable task = new Runnable() {
+		public void run() {
+		    for(Iterator<Block> i = flowingDispensers.iterator(); i.hasNext(); ){ 
+			Block b = i.next();
+			
+			// if one of our powered dispensers is no longer
+			// powered, shut down the flow
+			if(! b.isBlockIndirectlyPowered()) {
+			    Block t = getFacingBlock((Dispenser) b.getState(), 1);
+			    t.setData((byte) 2, true);
+			    i.remove();
+			}
+		    }
+		    finishPowerTest();
+		}
+	    };
+	
+	getServer().getScheduler().scheduleSyncDelayedTask(this, task);
+    }
+
+
+
     private void onBlockRedstoneChange(BlockRedstoneEvent e) {
 	// if the change is from powered to unpowered
-	if(e.getOldCurrent() > 0 && e.getNewCurrent() == 0) {
-	    
-	    for(Iterator<Block> i = flowingDispensers.iterator(); i.hasNext(); ){ 
-		Block b = i.next();
-		
-		// if one of our powered dispensers is no longer
-		// powered, shut down the flow
-		if(! (b.isBlockPowered() || b.isBlockIndirectlyPowered())) {
-		    Block t = getFacingBlock(b);
-		    safeSetBlockType(t, Material.AIR);
-		    i.remove();
-		}
-	    }
+	if((! powerTest) && (e.getOldCurrent() > 0 && e.getNewCurrent() == 0)) {
+	    schedulePowerTest();
 	}
     }
 
@@ -135,7 +160,7 @@ public class DispenserPlugin extends JavaPlugin {
        check that the spew type is enabled (by not being AIR) and
        matches the material being spewed
      */
-    private static boolean spewCheck(Material spewed, Material check) {
+    private static final boolean spewCheck(Material spewed, Material check) {
 	return (check != Material.AIR && spewed == check);
     }
 
@@ -144,59 +169,44 @@ public class DispenserPlugin extends JavaPlugin {
     private void onBlockDispense(BlockDispenseEvent e) {
 	if(e.isCancelled())
 	    return;
-
+	
+	Dispenser d = (Dispenser) e.getBlock().getState();
 	Material spewType = e.getItem().getType();
-	boolean cancel = false;
+	boolean cancel = true;
 
 	if(spewCheck(spewType, slimeType)) {
-	    if(spewSlime(e.getBlock())) {
-		// we change it to a snowball because we want to consume the item,
-		// but by default a slimeball would just plop out.
-		// TODO: use inventory editing and cancel the event.
-		e.setItem(new ItemStack(Material.SNOW_BALL, 1));
-	    }
+	    spewSlimeFrom(d);
 	    
 	} else if(spewCheck(spewType, lightningType)) {
-	    if(spewLightning(e.getBlock())) {
-		cancel = true;
-	    }
+	    spewLightningFrom(d);
 
 	} else if(spewCheck(spewType, fireType)) {
-	    if(spewFire(e.getBlock())) {
-		cancel = true;
-	    }
+	    spewFireFrom(d);
 
 	} else if(spewCheck(spewType, boatType)) {
-	    if(spewBoat(e.getBlock())) {
-		// TODO: use inventory editing and cancel the event.
-		e.setItem(new ItemStack(Material.SNOW_BALL, 1));
-	    }
+	    spewBoatFrom(d);
 
 	} else if(spewCheck(spewType, cartType)) {
-	    if(spewMinecart(e.getBlock())) {
-		// TODO: use inventory editing and cancel the event.
-		e.setItem(new ItemStack(Material.SNOW_BALL, 1));
-	    }
+	    spewMinecartFrom(d);
 
 	} else if(spewCheck(spewType, waterType)) {
-	    if(spewWater(e.getBlock())) {
-		cancel = true;
-	    }
+	    spewWaterFrom(d);
 	    
 	} else if(spewCheck(spewType, lavaType)) {
-	    if(spewLava(e.getBlock())) {
-		cancel = true;
-	    }
+	    spewLavaFrom(d);
+
+	} else {
+	    cancel = false;
 	}
 
-	// canceling this event means that the item is NOT consumed,
-	// and nothing is plopped out automatically. So for non-consumable
-	// triggers, such cancel should be true.
 	e.setCancelled(cancel);
     }
 
 
 
+    /**
+       Schedules the block change to happen at the next free tick.
+     */
     private void safeSetBlockType(final Block block, final Material material) {
 	Runnable task = new Runnable() {
 		public void run() {
@@ -204,7 +214,30 @@ public class DispenserPlugin extends JavaPlugin {
 		}
 	    };
 
-	Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(this, task);
+	getServer().getScheduler().scheduleSyncDelayedTask(this, task);
+    }
+
+
+
+    private void safeConsumeInventory(final Dispenser d, final Material mat) {
+	Runnable task = new Runnable() {
+		public void run(){ 
+		    Inventory inv = d.getInventory();
+		    int index = inv.first(mat);
+		    if(index >= 0) {
+			ItemStack stack = inv.getItem(index);
+			int count = stack.getAmount() - 1;
+			if(count < 1) {
+			    inv.setItem(index, null);
+			} else {
+			    stack.setAmount(count);
+			    inv.setItem(index, stack);
+			}
+		    }
+		}
+	    };
+	
+	getServer().getScheduler().scheduleSyncDelayedTask(this, task);
     }
 
 
@@ -213,25 +246,9 @@ public class DispenserPlugin extends JavaPlugin {
        Determine the Block that is count away from the face of the
        Dispenser b.
      */
-    private static Block getFacingBlock(Block b, int count) {
-	switch(b.getData()) {
-	case 2:
-	    return b.getFace(BlockFace.EAST, count);
-	case 3:
-	    return b.getFace(BlockFace.WEST, count);
-	case 4:
-	    return b.getFace(BlockFace.NORTH, count);
-	case 5:
-	    return b.getFace(BlockFace.SOUTH, count);
-	default:
-	    return b.getFace(BlockFace.UP, count);
-	}
-    }
-    
-
-
-    private static Block getFacingBlock(Block b) {
-	return getFacingBlock(b, 1);
+    private static final Block getFacingBlock(Dispenser dispenser, int count) {
+	Directional dir = (Directional) dispenser.getData();
+	return dispenser.getBlock().getFace(dir.getFacing(), count);
     }
     
 
@@ -239,14 +256,16 @@ public class DispenserPlugin extends JavaPlugin {
     /**
        Spawns a slime creature
     */
-    public boolean spewSlime(Block b) {
-	b = getFacingBlock(b, 2);
-	
-	if(! isMaterialOpen(b.getType()))
-	    return false;
-	
-	b.getWorld().spawnCreature(b.getLocation(), CreatureType.SLIME);
-	return true;
+    private final void spewSlimeFrom(Dispenser d) {
+	Block t = getFacingBlock(d, 2);
+
+	if(isMaterialOpen(t.getType())) {
+	    t.getWorld().spawnCreature(t.getLocation(), CreatureType.SLIME);
+	    safeConsumeInventory(d, slimeType);
+
+	} else {
+	    System.out.println("Cannot spawn slime in " + t.getType());
+	}
     }
     
 
@@ -254,9 +273,9 @@ public class DispenserPlugin extends JavaPlugin {
     /**
        Causes a lightning strike
     */
-    public boolean spewLightning(Block b) {
+    private static final void spewLightningFrom(Dispenser d) {
+	Block b = d.getBlock();
 	b.getWorld().strikeLightning(b.getLocation());
-	return true;
     }
 
 
@@ -265,21 +284,21 @@ public class DispenserPlugin extends JavaPlugin {
        Lights a fire. Uses the BlockIgniteEvent check to make sure
        fire is permitted.
     */
-    public boolean spewFire(Block b) {
-	b = getFacingBlock(b);
+    private final void spewFireFrom(Dispenser d) {
+	Block t = getFacingBlock(d, 1);
 	
-	if(! isMaterialOpen(b.getType()))
-	    return false;
+	if(isMaterialOpen(t.getType())) {
+	    IgniteCause cause = BlockIgniteEvent.IgniteCause.FLINT_AND_STEEL;
+	    BlockIgniteEvent event = new BlockIgniteEvent(t, cause, null);
+	    Bukkit.getServer().getPluginManager().callEvent(event);
+	
+	    if(! event.isCancelled()) {
+		safeSetBlockType(t, Material.FIRE);
+	    }
 
-	IgniteCause cause = BlockIgniteEvent.IgniteCause.FLINT_AND_STEEL;
-	BlockIgniteEvent event = new BlockIgniteEvent(b, cause, null);
-	getServer().getPluginManager().callEvent(event);
-	
-	if(! event.isCancelled()) {
-	    safeSetBlockType(b, Material.FIRE);
+	} else {
+	    System.out.println("Cannot set fire to " + t.getType());
 	}
-
-	return true;
     }
 
 
@@ -287,17 +306,15 @@ public class DispenserPlugin extends JavaPlugin {
     /**
        Spawns a boat entity
      */
-    public boolean spewBoat(Block b) {
-	b = getFacingBlock(b);
+    private final void spewBoatFrom(Dispenser d) {
+	Block t = getFacingBlock(d, 1);
 
-	switch(b.getType()) {
-	case AIR:
-	case WATER:
-	    b.getWorld().spawnBoat(b.getLocation());
-	    return true;
+	if(isMaterialOpen(t.getType())) {
+	    t.getWorld().spawnBoat(t.getLocation());
+	    safeConsumeInventory(d, boatType);
 
-	default:
-	    return false;
+	} else {
+	    System.out.println("Cannot spew a boat into " + t.getType());
 	}
     }
 
@@ -306,19 +323,15 @@ public class DispenserPlugin extends JavaPlugin {
     /**
        Spawns a minecart entity
      */
-    public boolean spewMinecart(Block b) {
-	b = getFacingBlock(b);
-	
-	switch(b.getType()) {
-	case AIR:
-	case RAILS:
-	case POWERED_RAIL:
-	case DETECTOR_RAIL:
-	    b.getWorld().spawnMinecart(b.getLocation());
-	    return true;
+    private final void spewMinecartFrom(Dispenser d) {
+	Block t = getFacingBlock(d, 1);
 
-	default:
-	    return false;
+	if(isMaterialOpen(t.getType())) {
+	    t.getWorld().spawnMinecart(t.getLocation());
+	    safeConsumeInventory(d, cartType);
+
+	} else {
+	    System.out.println("Cannot spew a minecart into " + t.getType());
 	}
     }
 
@@ -327,15 +340,16 @@ public class DispenserPlugin extends JavaPlugin {
     /**
        Starts a water flow
      */
-    public boolean spewWater(Block b) {
-	Block t = getFacingBlock(b);
+    private final void spewWaterFrom(Dispenser d) {
+	Block t = getFacingBlock(d, 1);
 
-	if(! isMaterialOpen(t.getType()))
-	    return false;
-	
-	safeSetBlockType(t, Material.WATER);
-	flowingDispensers.add(b);
-	return true;
+	if(isMaterialOpen(t.getType())) {
+	    safeSetBlockType(t, Material.WATER);
+	    flowingDispensers.add(d.getBlock());
+
+	} else {
+	    System.out.println("Cannot spew water into " + t.getType());
+	}
     }
 
 
@@ -343,15 +357,16 @@ public class DispenserPlugin extends JavaPlugin {
     /**
        Starts a lava flow
     */
-    public boolean spewLava(Block b) {
-	Block t = getFacingBlock(b);
+    private final void spewLavaFrom(Dispenser d) {
+	Block t = getFacingBlock(d, 1);
 
-	if(! isMaterialOpen(t.getType()))
-	    return false;
-	
-	safeSetBlockType(t, Material.LAVA);
-	flowingDispensers.add(b);
-	return true;
+	if(isMaterialOpen(t.getType())) {
+	    safeSetBlockType(t, Material.LAVA);
+	    flowingDispensers.add(d.getBlock());
+	    
+	} else {
+	    System.out.println("Cannot spew lava into " + t.getType());
+	}
     }
 
     
@@ -360,7 +375,7 @@ public class DispenserPlugin extends JavaPlugin {
        Check if the material is considered "open" such that you could
        reasonably expect something to spawn there. Non obtrusive blocks.
      */
-    private static boolean isMaterialOpen(Material m) {
+    private static final boolean isMaterialOpen(Material m) {
 	switch(m) {
 	case AIR:
 	case BROWN_MUSHROOM:
