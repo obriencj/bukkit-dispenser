@@ -2,8 +2,10 @@ package net.preoccupied.bukkit.dispenser;
 
 
 import java.io.IOException;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.bukkit.Bukkit;
@@ -39,7 +41,7 @@ import net.preoccupied.bukkit.PluginConfiguration;
 public class DispenserPlugin extends JavaPlugin {
 
 
-    private Set<Block> flowingDispensers = null;
+    private Map<Block,Block> flowingDispensers = null;
 
 
     private Material waterType = Material.WATER_BUCKET;
@@ -56,7 +58,7 @@ public class DispenserPlugin extends JavaPlugin {
 
 
     public void onLoad() {
-	flowingDispensers = new HashSet<Block>();
+	flowingDispensers = new HashMap<Block,Block>();
 
 	// if you're not using the bukkit-utils module, you can
 	// comment the rest of this method out, but you won't be able
@@ -107,13 +109,8 @@ public class DispenserPlugin extends JavaPlugin {
 
 
     public void onDisable() {
-	for(Block b : flowingDispensers) {
-	    if(b instanceof Dispenser) {
-		Block t = getFacingBlock((Dispenser) b.getState(), 1);
-		t.setTypeId(0, true);
-	    } else {
-		;
-	    }
+	for(Block flow : flowingDispensers.values()) {
+	    flow.setTypeId(0, true);
 	}
 	flowingDispensers.clear();
     }
@@ -131,20 +128,14 @@ public class DispenserPlugin extends JavaPlugin {
 
 	Runnable task = new Runnable() {
 		public void run() {
-		    for(Iterator<Block> i = flowingDispensers.iterator(); i.hasNext(); ){ 
-			Block b = i.next();
-			
-			// if one of our powered dispensers is no longer
-			// powered, shut down the flow
-			if(! b.isBlockIndirectlyPowered()) {
-			    if(b instanceof Dispenser) {
-				Block t = getFacingBlock((Dispenser) b.getState(), 1);
-				t.setData((byte) 2, true);
-				i.remove();
-			    } else {
-				System.out.println("Block " + b + " is no longer a Dispenser");
-			    }
-
+		    Set<Map.Entry<Block,Block>> entries = flowingDispensers.entrySet();
+		    for(Iterator<Map.Entry<Block,Block>> i = entries.iterator(); i.hasNext(); ){ 
+			Map.Entry<Block,Block> entry = i.next();
+			Block dispenser = entry.getKey();
+			if(! dispenser.isBlockIndirectlyPowered()) {
+			    Block flow = entry.getValue();
+			    flow.setData((byte) 2, true);
+			    i.remove();
 			}
 		    }
 		    finishPowerTest();
@@ -178,7 +169,7 @@ public class DispenserPlugin extends JavaPlugin {
     private void onBlockDispense(BlockDispenseEvent e) {
 	if(e.isCancelled())
 	    return;
-	
+
 	Dispenser d = (Dispenser) e.getBlock().getState();
 	Material spewType = e.getItem().getType();
 	boolean cancel = true;
@@ -220,6 +211,7 @@ public class DispenserPlugin extends JavaPlugin {
 	Runnable task = new Runnable() {
 		public void run() {
 		    block.setType(material);
+		    block.setData((byte) 0, true);
 		}
 	    };
 
@@ -228,6 +220,9 @@ public class DispenserPlugin extends JavaPlugin {
 
 
 
+    /**
+       Schedules an inventory depletion by one of the given material type.
+     */
     private void safeConsumeInventory(final Dispenser d, final Material mat) {
 	Runnable task = new Runnable() {
 		public void run(){ 
@@ -354,7 +349,7 @@ public class DispenserPlugin extends JavaPlugin {
 
 	if(isMaterialOpen(t.getType())) {
 	    safeSetBlockType(t, Material.WATER);
-	    flowingDispensers.add(d.getBlock());
+	    flowingDispensers.put(d.getBlock(), t);
 
 	} else {
 	    System.out.println("Cannot spew water into " + t.getType());
@@ -371,7 +366,7 @@ public class DispenserPlugin extends JavaPlugin {
 
 	if(isMaterialOpen(t.getType())) {
 	    safeSetBlockType(t, Material.LAVA);
-	    flowingDispensers.add(d.getBlock());
+	    flowingDispensers.put(d.getBlock(), t);
 	    
 	} else {
 	    System.out.println("Cannot spew lava into " + t.getType());
