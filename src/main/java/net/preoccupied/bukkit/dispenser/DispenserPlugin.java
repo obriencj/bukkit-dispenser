@@ -108,8 +108,12 @@ public class DispenserPlugin extends JavaPlugin {
 
     public void onDisable() {
 	for(Block b : flowingDispensers) {
-	    Block t = getFacingBlock((Dispenser) b.getState(), 1);
-	    t.setTypeId(0, true);
+	    if(b instanceof Dispenser) {
+		Block t = getFacingBlock((Dispenser) b.getState(), 1);
+		t.setTypeId(0, true);
+	    } else {
+		;
+	    }
 	}
 	flowingDispensers.clear();
     }
@@ -133,9 +137,14 @@ public class DispenserPlugin extends JavaPlugin {
 			// if one of our powered dispensers is no longer
 			// powered, shut down the flow
 			if(! b.isBlockIndirectlyPowered()) {
-			    Block t = getFacingBlock((Dispenser) b.getState(), 1);
-			    t.setData((byte) 2, true);
-			    i.remove();
+			    if(b instanceof Dispenser) {
+				Block t = getFacingBlock((Dispenser) b.getState(), 1);
+				t.setData((byte) 2, true);
+				i.remove();
+			    } else {
+				System.out.println("Block " + b + " is no longer a Dispenser");
+			    }
+
 			}
 		    }
 		    finishPowerTest();
