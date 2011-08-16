@@ -13,7 +13,9 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Dispenser;
+import org.bukkit.entity.Boat;
 import org.bukkit.entity.CreatureType;
+import org.bukkit.entity.Minecart;
 import org.bukkit.event.Event;
 import org.bukkit.event.Event.Priority;
 import org.bukkit.event.Event.Type;
@@ -79,7 +81,6 @@ public class DispenserPlugin extends JavaPlugin {
 	    cartType = Material.getMaterial(conf.getInt("dispenser.minecart-type", cartType.getId()));
 
 	} catch(IOException ioe) {
-	    System.out.println(ioe);
 	    ioe.printStackTrace();
 	    return;
 	}
@@ -314,7 +315,7 @@ public class DispenserPlugin extends JavaPlugin {
 	Block t = getFacingBlock(d, 1);
 
 	if(isMaterialOpen(t.getType())) {
-	    t.getWorld().spawnBoat(t.getLocation());
+	    t.getWorld().spawn(t.getLocation(), Boat.class);
 	    safeConsumeInventory(d, boatType);
 
 	} else {
@@ -331,7 +332,7 @@ public class DispenserPlugin extends JavaPlugin {
 	Block t = getFacingBlock(d, 1);
 
 	if(isMaterialOpen(t.getType())) {
-	    t.getWorld().spawnMinecart(t.getLocation());
+	    t.getWorld().spawn(t.getLocation(), Minecart.class);
 	    safeConsumeInventory(d, cartType);
 
 	} else {
