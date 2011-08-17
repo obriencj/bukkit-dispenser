@@ -15,6 +15,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.Dispenser;
 import org.bukkit.entity.Boat;
 import org.bukkit.entity.CreatureType;
+import org.bukkit.entity.Vehicle;
 import org.bukkit.entity.Minecart;
 import org.bukkit.event.Event;
 import org.bukkit.event.Event.Priority;
@@ -24,6 +25,7 @@ import org.bukkit.event.block.BlockDispenseEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockIgniteEvent.IgniteCause;
+import org.bukkit.event.vehicle.VehicleBlockCollisionEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.material.Directional;
@@ -105,6 +107,13 @@ public class DispenserPlugin extends JavaPlugin {
 		}
 	    };
 	pm.registerEvent(Event.Type.BLOCK_DISPENSE, null, ee, Priority.Low, this);
+
+	ee = new EventExecutor() {
+		public void execute(Listener ignored, Event e) {
+		    onBlockCollide((VehicleBlockCollisionEvent) e);
+		}
+	    };
+	pm.registerEvent(Event.Type.VEHICLE_COLLISION_BLOCK, null, ee, Priority.Low, this);
     }
 
 
@@ -206,6 +215,43 @@ public class DispenserPlugin extends JavaPlugin {
 
 
     /**
+       If a vehicle collides with a dispenser, put the vehicle in
+       the dispenser
+     */
+    private void onBlockCollide(VehicleBlockCollisionEvent e) {
+
+	Block b = e.getBlock();
+
+	if (b.getType() != Material.DISPENSER) {
+
+	    // The collision detection often (always?) picks the wrong block,
+	    // choosing the block beneath the one we visibly collide with.
+	    // So, check the block above.
+	    b = b.getWorld().getBlockAt(b.getX(), b.getY() + 1, b.getZ());
+	    if (b.getType() != Material.DISPENSER) return;
+	}
+
+	Dispenser d;
+	try {
+	    d = (Dispenser) b.getState();
+	} catch (ClassCastException ex) {
+	    return;
+	}
+
+	Vehicle v = e.getVehicle();
+	Material m;
+
+	if (v instanceof Minecart) m = Material.MINECART;
+	else if (v instanceof Boat) m = Material.BOAT;
+	else return;
+
+	safeAddInventory(d, m);
+	safeRemoveVehicle(e.getVehicle());
+    }
+
+
+
+    /**
        Schedules the block change to happen at the next free tick.
      */
     private void safeSetBlockType(final Block block, final Material material) {
@@ -239,6 +285,55 @@ public class DispenserPlugin extends JavaPlugin {
 			    inv.setItem(index, stack);
 			}
 		    }
+		}
+	    };
+	
+	getServer().getScheduler().scheduleSyncDelayedTask(this, task);
+    }
+
+
+
+    /**
+       Schedules an inventory increment of the given material type.
+     */
+    private void safeAddInventory(final Dispenser d, final Material mat) {
+	Runnable task = new Runnable() {
+		public void run(){ 
+		    Inventory inv = d.getInventory();
+		    int index = inv.first(mat);
+
+		    // We may be the first object of this type in the
+		    // dispenser
+		    if (index == -1) {
+			index = inv.firstEmpty();
+
+			// If we have no room, return. We'll make this more
+			// graceful later. At *least* give the user a message
+			// about losing the minecart forever :)
+			if (index == -1) return;
+
+			inv.setItem(index, new ItemStack(mat, 1));
+		    }
+		    else {
+			ItemStack stack = inv.getItem(index);
+			stack.setAmount(stack.getAmount() + 1);
+		    }
+		}
+	    };
+	
+	getServer().getScheduler().scheduleSyncDelayedTask(this, task);
+    }
+
+
+
+    /**
+       Schedules the vehicle to eject the player and disappear
+     */
+    private void safeRemoveVehicle(final Vehicle v) {
+	Runnable task = new Runnable() {
+		public void run(){ 
+		    v.eject();
+		    v.remove();
 		}
 	    };
 	
