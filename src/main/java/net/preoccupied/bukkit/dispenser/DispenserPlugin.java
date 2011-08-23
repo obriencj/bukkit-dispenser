@@ -407,14 +407,15 @@ public class DispenserPlugin extends JavaPlugin {
        Spawns a boat entity
      */
     private final void spewBoatFrom(Dispenser d) {
-	Block t = getFacingBlock(d, 1);
+	Block t0 = getFacingBlock(d, 1);
+	Block t1 = getFacingBlock(d, 2);
 
-	if(isMaterialOpen(t.getType())) {
-	    t.getWorld().spawn(t.getLocation(), Boat.class);
+	if(isMaterialOpen(t0.getType()) && isMaterialOpen(t1.getType())) {
+	    t1.getWorld().spawn(t1.getLocation(), Boat.class);
 	    safeConsumeInventory(d, boatType);
 
 	} else {
-	    System.out.println("Cannot spew a boat into " + t.getType());
+	    System.out.println("Cannot spew a boat into " + t1.getType());
 	}
     }
 
@@ -424,14 +425,15 @@ public class DispenserPlugin extends JavaPlugin {
        Spawns a minecart entity
      */
     private final void spewMinecartFrom(Dispenser d) {
-	Block t = getFacingBlock(d, 1);
+	Block t0 = getFacingBlock(d, 1);
+	Block t1 = getFacingBlock(d, 2);
 
-	if(isMaterialOpen(t.getType())) {
-	    t.getWorld().spawn(t.getLocation(), Minecart.class);
+	if(isMaterialOpen(t0.getType()) && isMaterialOpen(t1.getType())) {
+	    t1.getWorld().spawn(t1.getLocation(), Minecart.class);
 	    safeConsumeInventory(d, cartType);
 
 	} else {
-	    System.out.println("Cannot spew a minecart into " + t.getType());
+	    System.out.println("Cannot spew a minecart into " + t1.getType());
 	}
     }
 
