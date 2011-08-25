@@ -114,6 +114,8 @@ public class DispenserPlugin extends JavaPlugin {
 		}
 	    };
 	pm.registerEvent(Event.Type.VEHICLE_COLLISION_BLOCK, null, ee, Priority.Low, this);
+
+	getServer().getLogger().info(this + " is enabled");
     }
 
 
@@ -123,6 +125,8 @@ public class DispenserPlugin extends JavaPlugin {
 	    flow.setTypeId(0, true);
 	}
 	flowingDispensers.clear();
+
+	getServer().getLogger().info(this + " is disabled");
     }
 
 
@@ -364,7 +368,7 @@ public class DispenserPlugin extends JavaPlugin {
 	    safeConsumeInventory(d, slimeType);
 
 	} else {
-	    System.out.println("Cannot spawn slime in " + t.getType());
+	    getServer().getLogger().info("Cannot spawn slime in " + t.getType());
 	}
     }
     
@@ -397,7 +401,7 @@ public class DispenserPlugin extends JavaPlugin {
 	    }
 
 	} else {
-	    System.out.println("Cannot set fire to " + t.getType());
+	    getServer().getLogger().info("Cannot set fire to " + t.getType());
 	}
     }
 
@@ -415,7 +419,7 @@ public class DispenserPlugin extends JavaPlugin {
 	    safeConsumeInventory(d, boatType);
 
 	} else {
-	    System.out.println("Cannot spew a boat into " + t1.getType());
+	    getServer().getLogger().info("Cannot spew a boat into " + t1.getType());
 	}
     }
 
@@ -433,7 +437,7 @@ public class DispenserPlugin extends JavaPlugin {
 	    safeConsumeInventory(d, cartType);
 
 	} else {
-	    System.out.println("Cannot spew a minecart into " + t1.getType());
+	    getServer().getLogger().info("Cannot spew a minecart into " + t1.getType());
 	}
     }
 
@@ -450,7 +454,7 @@ public class DispenserPlugin extends JavaPlugin {
 	    flowingDispensers.put(d.getBlock(), t);
 
 	} else {
-	    System.out.println("Cannot spew water into " + t.getType());
+	    getServer().getLogger().info("Cannot spew water into " + t.getType());
 	}
     }
 
@@ -467,7 +471,7 @@ public class DispenserPlugin extends JavaPlugin {
 	    flowingDispensers.put(d.getBlock(), t);
 	    
 	} else {
-	    System.out.println("Cannot spew lava into " + t.getType());
+	    getServer().getLogger().info("Cannot spew lava into " + t.getType());
 	}
     }
 
@@ -505,6 +509,7 @@ public class DispenserPlugin extends JavaPlugin {
 	    return false;
 	}
     }
+
 
 }
 
