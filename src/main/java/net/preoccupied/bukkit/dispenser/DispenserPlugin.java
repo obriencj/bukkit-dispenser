@@ -217,34 +217,34 @@ public class DispenserPlugin extends JavaPlugin {
     /**
        If a vehicle collides with a dispenser, put the vehicle in
        the dispenser
-     */
+    */
     private void onBlockCollide(VehicleBlockCollisionEvent e) {
-
+	
 	Block b = e.getBlock();
-
+	
 	if (b.getType() != Material.DISPENSER) {
-
+	    
 	    // The collision detection often (always?) picks the wrong block,
 	    // choosing the block beneath the one we visibly collide with.
 	    // So, check the block above.
 	    b = b.getWorld().getBlockAt(b.getX(), b.getY() + 1, b.getZ());
 	    if (b.getType() != Material.DISPENSER) return;
 	}
-
+	
 	Dispenser d;
 	try {
 	    d = (Dispenser) b.getState();
 	} catch (ClassCastException ex) {
 	    return;
 	}
-
+	
 	Vehicle v = e.getVehicle();
 	Material m;
-
+	
 	if (v instanceof Minecart) m = Material.MINECART;
 	else if (v instanceof Boat) m = Material.BOAT;
 	else return;
-
+	
 	safeAddInventory(d, m);
 	safeRemoveVehicle(e.getVehicle());
     }
@@ -253,7 +253,7 @@ public class DispenserPlugin extends JavaPlugin {
 
     /**
        Schedules the block change to happen at the next free tick.
-     */
+    */
     private void safeSetBlockType(final Block block, final Material material) {
 	Runnable task = new Runnable() {
 		public void run() {
@@ -261,15 +261,15 @@ public class DispenserPlugin extends JavaPlugin {
 		    block.setData((byte) 0, true);
 		}
 	    };
-
+	
 	getServer().getScheduler().scheduleSyncDelayedTask(this, task);
     }
-
+    
 
 
     /**
        Schedules an inventory depletion by one of the given material type.
-     */
+    */
     private void safeConsumeInventory(final Dispenser d, final Material mat) {
 	Runnable task = new Runnable() {
 		public void run(){ 
@@ -295,23 +295,23 @@ public class DispenserPlugin extends JavaPlugin {
 
     /**
        Schedules an inventory increment of the given material type.
-     */
+    */
     private void safeAddInventory(final Dispenser d, final Material mat) {
 	Runnable task = new Runnable() {
 		public void run(){ 
 		    Inventory inv = d.getInventory();
 		    int index = inv.first(mat);
-
+		    
 		    // We may be the first object of this type in the
 		    // dispenser
 		    if (index == -1) {
 			index = inv.firstEmpty();
-
+			
 			// If we have no room, return. We'll make this more
 			// graceful later. At *least* give the user a message
 			// about losing the minecart forever :)
 			if (index == -1) return;
-
+			
 			inv.setItem(index, new ItemStack(mat, 1));
 		    }
 		    else {
