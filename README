@@ -23,3 +23,14 @@ dispenser.
 Ramming a boat or minecart into a dispenser will despawn the vehicle
 and cause it to be loaded into the dispenser's inventory. (thanks
 annabunches!)
+
+
+Features may be disabled by changing the item type for the effect
+to 0 in the configuration YAML file.
+
+
+The effect depends on the item which is selected from the dispenser's
+inventory. If you place multiple, different items into a dispenser,
+the effect will change depending on which of the items is selected at
+random by the server.
+
