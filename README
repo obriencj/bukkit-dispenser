@@ -1,0 +1,25 @@
+This is a plugin for the Bukkit Minecraft server.
+
+The Dispenser plugin adds a number of features to the dispenser blocks
+in Minecraft.
+
+Placing a bucket of water of lava inside of a dispenser will cause it
+to emit the appropriate fluid from the front whenever redstone power
+is applied, and will shut off when power fades.
+
+Placing a slime ball inside of a dispenser and causing it to trigger
+will spawn a slime monster.
+
+Placing golden boots inside of a dispenser and causing it to trigger
+will make lightning strike the dispenser.
+
+Placing a flint and steel inside of a dispenser and causing it to
+trigger will ignite the block in front of the dispenser.
+
+Placing a boat or minecart inside of a dispenser and causing it to
+trigger will spawn the appropriate vehicle two blocks in front of the
+dispenser.
+
+Ramming a boat or minecart into a dispenser will despawn the vehicle
+and cause it to be loaded into the dispenser's inventory. (thanks
+annabunches!)
