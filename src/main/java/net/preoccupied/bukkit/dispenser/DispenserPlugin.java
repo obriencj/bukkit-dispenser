@@ -9,6 +9,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -356,15 +357,25 @@ public class DispenserPlugin extends JavaPlugin {
     }
     
 
+
+    private static final Location getCenterLocation(Block block) {
+	Location l = block.getLocation();
+	l.setX(l.getX() + 0.5);
+	l.setZ(l.getZ() + 0.5);
+	return l;
+    }
+
+
     
     /**
        Spawns a slime creature
     */
     private final void spewSlimeFrom(Dispenser d) {
-	Block t = getFacingBlock(d, 2);
+	Block t = getFacingBlock(d, 1);
+	Location tl = getCenterLocation(t);
 
 	if(isMaterialOpen(t.getType())) {
-	    t.getWorld().spawnCreature(t.getLocation(), CreatureType.SLIME);
+	    tl.getWorld().spawnCreature(tl, CreatureType.SLIME);
 	    safeConsumeInventory(d, slimeType);
 
 	} else {
@@ -412,14 +423,14 @@ public class DispenserPlugin extends JavaPlugin {
      */
     private final void spewBoatFrom(Dispenser d) {
 	Block t0 = getFacingBlock(d, 1);
-	Block t1 = getFacingBlock(d, 2);
+	Location tl = getCenterLocation(t0);
 
-	if(isMaterialOpen(t0.getType()) && isMaterialOpen(t1.getType())) {
-	    t1.getWorld().spawn(t1.getLocation(), Boat.class);
+	if(isMaterialOpen(t0.getType())) {
+	    tl.getWorld().spawn(tl, Boat.class);
 	    safeConsumeInventory(d, boatType);
 
 	} else {
-	    getServer().getLogger().info("Cannot spew a boat into " + t1.getType());
+	    getServer().getLogger().info("Cannot spew a boat into " + t0.getType());
 	}
     }
 
@@ -430,14 +441,14 @@ public class DispenserPlugin extends JavaPlugin {
      */
     private final void spewMinecartFrom(Dispenser d) {
 	Block t0 = getFacingBlock(d, 1);
-	Block t1 = getFacingBlock(d, 2);
+	Location tl = getCenterLocation(t0);
 
-	if(isMaterialOpen(t0.getType()) && isMaterialOpen(t1.getType())) {
-	    t1.getWorld().spawn(t1.getLocation(), Minecart.class);
+	if(isMaterialOpen(t0.getType())) {
+	    tl.getWorld().spawn(tl, Minecart.class);
 	    safeConsumeInventory(d, cartType);
 
 	} else {
-	    getServer().getLogger().info("Cannot spew a minecart into " + t1.getType());
+	    getServer().getLogger().info("Cannot spew a minecart into " + t0.getType());
 	}
     }
 
