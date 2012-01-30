@@ -19,8 +19,7 @@ import org.bukkit.entity.CreatureType;
 import org.bukkit.entity.Vehicle;
 import org.bukkit.entity.Minecart;
 import org.bukkit.event.Event;
-import org.bukkit.event.Event.Priority;
-import org.bukkit.event.Event.Type;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockDispenseEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
@@ -100,21 +99,21 @@ public class DispenserPlugin extends JavaPlugin {
 		    onBlockRedstoneChange((BlockRedstoneEvent) e);
 		}
 	    };
-	pm.registerEvent(Event.Type.REDSTONE_CHANGE, null, ee, Priority.Low, this);
+	pm.registerEvent(BlockRedstoneEvent.class, null, EventPriority.LOW, ee, this);
 
 	ee = new EventExecutor() {
 		public void execute(Listener ignored, Event e) {
 		    onBlockDispense((BlockDispenseEvent) e);
 		}
 	    };
-	pm.registerEvent(Event.Type.BLOCK_DISPENSE, null, ee, Priority.Low, this);
+	pm.registerEvent(BlockDispenseEvent.class, null, EventPriority.LOW, ee, this);
 
 	ee = new EventExecutor() {
 		public void execute(Listener ignored, Event e) {
 		    onBlockCollide((VehicleBlockCollisionEvent) e);
 		}
 	    };
-	pm.registerEvent(Event.Type.VEHICLE_COLLISION_BLOCK, null, ee, Priority.Low, this);
+	pm.registerEvent(VehicleBlockCollisionEvent.class, null, EventPriority.LOW, ee, this);
 
 	getServer().getLogger().info(this + " is enabled");
     }
@@ -318,8 +317,8 @@ public class DispenserPlugin extends JavaPlugin {
 			if (index == -1) return;
 			
 			inv.setItem(index, new ItemStack(mat, 1));
-		    }
-		    else {
+
+		    } else {
 			ItemStack stack = inv.getItem(index);
 			stack.setAmount(stack.getAmount() + 1);
 		    }
