@@ -94,26 +94,28 @@ public class DispenserPlugin extends JavaPlugin {
 	PluginManager pm = getServer().getPluginManager();
 	EventExecutor ee;
 
+	Listener junk = new Listener() { };
+
 	ee = new EventExecutor() {
 		public void execute(Listener ignored, Event e) {
 		    onBlockRedstoneChange((BlockRedstoneEvent) e);
 		}
 	    };
-	pm.registerEvent(BlockRedstoneEvent.class, null, EventPriority.LOW, ee, this);
+	pm.registerEvent(BlockRedstoneEvent.class, junk, EventPriority.LOW, ee, this);
 
 	ee = new EventExecutor() {
 		public void execute(Listener ignored, Event e) {
 		    onBlockDispense((BlockDispenseEvent) e);
 		}
 	    };
-	pm.registerEvent(BlockDispenseEvent.class, null, EventPriority.LOW, ee, this);
+	pm.registerEvent(BlockDispenseEvent.class, junk, EventPriority.LOW, ee, this);
 
 	ee = new EventExecutor() {
 		public void execute(Listener ignored, Event e) {
 		    onBlockCollide((VehicleBlockCollisionEvent) e);
 		}
 	    };
-	pm.registerEvent(VehicleBlockCollisionEvent.class, null, EventPriority.LOW, ee, this);
+	pm.registerEvent(VehicleBlockCollisionEvent.class, junk, EventPriority.LOW, ee, this);
 
 	getServer().getLogger().info(this + " is enabled");
     }
